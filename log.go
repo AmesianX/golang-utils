@@ -92,50 +92,25 @@ func Debug(msg string, fields ...Field) {
 
 // Info 로그 생성
 func Info(msg string, fields ...Field) {
-	_, file, line, ok := runtime.Caller(1)
-	if ok {
-		globalLogger.Info(fmt.Sprintf("%s:%d:%s", file, line, msg), fields...)
-	} else {
-		globalLogger.Info(msg, fields...)
-	}
+	globalLogger.Info(msg, fields...)
 }
 
 // Warn 로그 생성
 func Warn(msg string, fields ...Field) {
-	_, file, line, ok := runtime.Caller(1)
-	if ok {
-		globalLogger.Warn(fmt.Sprintf("%s:%d:%s", file, line, msg), fields...)
-	} else {
-		globalLogger.Warn(msg, fields...)
-	}
+	globalLogger.Warn(msg, fields...)
 }
 
 // Error 로그 생성
 func Error(msg string, fields ...Field) {
-	_, file, line, ok := runtime.Caller(1)
-	if ok {
-		globalLogger.Error(fmt.Sprintf("%s:%d:%s", file, line, msg), fields...)
-	} else {
-		globalLogger.Error(msg, fields...)
-	}
+	globalLogger.Error(msg, fields...)
 }
 
 // Fatal 로그 생성
 func Fatal(msg string, fields ...Field) {
-	_, file, line, ok := runtime.Caller(1)
-	if ok {
-		globalLogger.Fatal(fmt.Sprintf("%s:%d:%s", file, line, msg), fields...)
-	} else {
-		globalLogger.Fatal(msg, fields...)
-	}
+	globalLogger.Fatal(msg, fields...)
 }
 
 // Panic 로그 생성
 func Panic(msg string, fields ...Field) {
-	_, file, line, ok := runtime.Caller(1)
-	if ok {
-		globalLogger.Panic(fmt.Sprintf("%s:%d:%s", file, line, msg), fields...)
-	} else {
-		globalLogger.Panic(msg, fields...)
-	}
+	globalLogger.Panic(msg, fields...)
 }
