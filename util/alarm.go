@@ -13,14 +13,14 @@ type Alarm struct {
 	Min  int `json:"min"`
 	Sec  int `json:"sec"`
 
-	TimeChan chan time.Time `json:"-"`
+	timeChan chan time.Time
 
 	ticker *time.Ticker
 }
 
 // NewAlarm :
 func NewAlarm(hour int, min int, sec int) *Alarm {
-	return &Alarm{Enable: true, Hour: hour, Min: min, Sec: sec, TimeChan: make(chan time.Time, 1)}
+	return &Alarm{Enable: true, Hour: hour, Min: min, Sec: sec, timeChan: make(chan time.Time, 1)}
 }
 
 // IsValid :
@@ -35,6 +35,11 @@ func (a *Alarm) IsValid() error {
 		return errors.New("Sec is invalid")
 	}
 	return nil
+}
+
+// GetTimeChan :
+func (a *Alarm) GetTimeChan() chan time.Time {
+	return a.timeChan
 }
 
 // Start :
@@ -54,12 +59,12 @@ func (a *Alarm) Start() {
 
 		a.ticker = time.NewTicker(24 * time.Hour)
 
-		a.TimeChan <- t
+		a.timeChan <- t
 
 		for {
 			select {
 			case t := <-a.ticker.C:
-				a.TimeChan <- t
+				a.timeChan <- t
 			}
 		}
 	}()
