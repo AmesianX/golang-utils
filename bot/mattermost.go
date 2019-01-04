@@ -13,16 +13,14 @@ const MATTERMOST = "mattermost"
 
 // Mattermost :
 type Mattermost struct {
-	Enable bool
-
 	URL      string
 	Username string
 	Password string
 	Team     string
 	Channel  string
 
-	PostChan chan chan *Post
-	Done     chan int
+	PostChanChan chan chan *Post
+	Done         chan int
 
 	client          *model.Client4
 	botUser         *model.User
@@ -31,8 +29,8 @@ type Mattermost struct {
 }
 
 // NewMattermost :
-func NewMattermost(enable bool, url string, username string, password string, team string, channel string) *Mattermost {
-	return &Mattermost{Enable: enable, URL: url, Username: username, Password: password, Team: team, Channel: channel, PostChan: make(chan chan *Post, 1), Done: make(chan int, 1)}
+func NewMattermost(url string, username string, password string, team string, channel string) *Mattermost {
+	return &Mattermost{URL: url, Username: username, Password: password, Team: team, Channel: channel, PostChanChan: make(chan chan *Post, 1), Done: make(chan int, 1)}
 }
 
 // Login :
@@ -73,10 +71,15 @@ func (m *Mattermost) Login() error {
 	return nil
 }
 
+// GetPostChanChan :
+func (m *Mattermost) GetPostChanChan() chan chan *Post {
+	return m.PostChanChan
+}
+
 // Start :
 func (m *Mattermost) Start() {
 	go func() {
-		postChan := <-m.PostChan
+		postChan := <-m.PostChanChan
 		for {
 			select {
 			case eventChannel := <-m.webSocketClient.EventChannel:
@@ -93,7 +96,7 @@ func (m *Mattermost) Start() {
 					}
 				}
 
-				postChan <- NewPost(MATTERMOST, req.Message)
+				postChan <- NewPost(MATTERMOST, m.Channel, req.Message)
 			case <-m.Done:
 				break
 			}
@@ -103,6 +106,15 @@ func (m *Mattermost) Start() {
 
 // Send :
 func (m Mattermost) Send(post *Post) error {
+	switch post.Messenger {
+	case MATTERMOST:
+		if strings.Compare(m.Channel, post.Channel) != 0 {
+			return nil
+		}
+	default:
+		return nil
+	}
+
 	mattermostPost := &model.Post{}
 	mattermostPost.ChannelId = m.botChannel.Id
 	mattermostPost.Message = post.Message

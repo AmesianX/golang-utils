@@ -1,7 +1,9 @@
 package bot
 
 import (
-	"gopkg.in/telegram-bot-api.v4"
+	"strings"
+
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 // TELEGRAM :
@@ -9,13 +11,12 @@ const TELEGRAM = "telegram"
 
 // Telegram :
 type Telegram struct {
-	Enable bool
+	Token   string
+	ChatID  int64
+	Channel string
 
-	Token  string
-	ChatID int64
-
-	PostChan chan chan *Post
-	Done     chan int
+	PostChanChan chan chan *Post
+	Done         chan int
 
 	botAPI        *tgbotapi.BotAPI
 	config        tgbotapi.UpdateConfig
@@ -23,8 +24,8 @@ type Telegram struct {
 }
 
 // NewTelegram :
-func NewTelegram(enable bool, token string, chatID int64) *Telegram {
-	return &Telegram{Enable: enable, Token: token, ChatID: chatID, PostChan: make(chan chan *Post, 1), Done: make(chan int, 1)}
+func NewTelegram(token string, chatID int64, channel string) *Telegram {
+	return &Telegram{Token: token, ChatID: chatID, Channel: channel, PostChanChan: make(chan chan *Post, 1), Done: make(chan int, 1)}
 }
 
 // Login :
@@ -46,14 +47,19 @@ func (t *Telegram) Login() error {
 	return nil
 }
 
+// GetPostChanChan :
+func (t *Telegram) GetPostChanChan() chan chan *Post {
+	return t.PostChanChan
+}
+
 // Start :
 func (t *Telegram) Start() {
 	go func() {
-		postChan := <-t.PostChan
+		postChan := <-t.PostChanChan
 		for {
 			select {
 			case req := <-t.updateChannel:
-				postChan <- NewPost(TELEGRAM, req.Message.Text)
+				postChan <- NewPost(TELEGRAM, t.Channel, req.Message.Text)
 			case <-t.Done:
 				break
 			}
@@ -63,6 +69,15 @@ func (t *Telegram) Start() {
 
 // Send :
 func (t Telegram) Send(post *Post) error {
+	switch post.Messenger {
+	case TELEGRAM:
+		if strings.Compare(t.Channel, post.Channel) != 0 {
+			return nil
+		}
+	default:
+		return nil
+	}
+
 	telegramPost := tgbotapi.NewMessage(t.ChatID, post.Message)
 
 	_, e := t.botAPI.Send(telegramPost)
