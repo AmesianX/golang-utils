@@ -69,20 +69,15 @@ func (t *Telegram) Start() {
 
 // Send :
 func (t Telegram) Send(post *Post) error {
-	switch post.Messenger {
-	case TELEGRAM:
-		if strings.Compare(t.Channel, post.Channel) != 0 {
-			return nil
+	if strings.Compare(TELEGRAM, post.Messenger) == 0 {
+		if strings.Compare(t.Channel, post.Channel) == 0 {
+			telegramPost := tgbotapi.NewMessage(t.ChatID, post.Message)
+
+			_, e := t.botAPI.Send(telegramPost)
+			if e != nil {
+				return e
+			}
 		}
-	default:
-		return nil
-	}
-
-	telegramPost := tgbotapi.NewMessage(t.ChatID, post.Message)
-
-	_, e := t.botAPI.Send(telegramPost)
-	if e != nil {
-		return e
 	}
 
 	return nil

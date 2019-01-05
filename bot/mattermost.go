@@ -106,21 +106,16 @@ func (m *Mattermost) Start() {
 
 // Send :
 func (m Mattermost) Send(post *Post) error {
-	switch post.Messenger {
-	case MATTERMOST:
-		if strings.Compare(m.Channel, post.Channel) != 0 {
-			return nil
+	if strings.Compare(MATTERMOST, post.Messenger) == 0 {
+		if strings.Compare(m.Channel, post.Channel) == 0 {
+			mattermostPost := &model.Post{}
+			mattermostPost.ChannelId = m.botChannel.Id
+			mattermostPost.Message = post.Message
+
+			if _, resp := m.client.CreatePost(mattermostPost); resp.Error != nil {
+				return errors.New(resp.Error.Message)
+			}
 		}
-	default:
-		return nil
-	}
-
-	mattermostPost := &model.Post{}
-	mattermostPost.ChannelId = m.botChannel.Id
-	mattermostPost.Message = post.Message
-
-	if _, resp := m.client.CreatePost(mattermostPost); resp.Error != nil {
-		return errors.New(resp.Error.Message)
 	}
 
 	return nil
