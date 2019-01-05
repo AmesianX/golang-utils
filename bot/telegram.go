@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"errors"
 	"strings"
 
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
@@ -11,12 +12,12 @@ const TELEGRAM = "telegram"
 
 // Telegram :
 type Telegram struct {
-	Token   string
-	ChatID  int64
-	Channel string
+	token   string
+	chatID  int64
+	channel string
 
-	PostChanChan chan chan *Post
-	Done         chan int
+	postChanChan chan chan *Post
+	done         chan int
 
 	botAPI        *tgbotapi.BotAPI
 	config        tgbotapi.UpdateConfig
@@ -25,7 +26,24 @@ type Telegram struct {
 
 // NewTelegram :
 func NewTelegram(token string, chatID int64, channel string) *Telegram {
-	return &Telegram{Token: token, ChatID: chatID, Channel: channel, PostChanChan: make(chan chan *Post, 1), Done: make(chan int, 1)}
+	return &Telegram{token: token, chatID: chatID, channel: channel, postChanChan: make(chan chan *Post, 1), done: make(chan int, 1)}
+}
+
+// IsValid :
+func (t *Telegram) IsValid() error {
+	if len(t.token) == 0 {
+		return errors.New("token is nil")
+	}
+	if t.chatID == 0 {
+		return errors.New("chatID is 0")
+	}
+
+	return nil
+}
+
+// GetPostChanChan :
+func (t *Telegram) GetPostChanChan() chan chan *Post {
+	return t.postChanChan
 }
 
 // Login :
@@ -33,7 +51,7 @@ func (t *Telegram) Login() error {
 	t.config = tgbotapi.NewUpdate(0)
 	t.config.Timeout = 60
 
-	bot, e := tgbotapi.NewBotAPI(t.Token)
+	bot, e := tgbotapi.NewBotAPI(t.token)
 	if e != nil {
 		return e
 	}
@@ -47,20 +65,15 @@ func (t *Telegram) Login() error {
 	return nil
 }
 
-// GetPostChanChan :
-func (t *Telegram) GetPostChanChan() chan chan *Post {
-	return t.PostChanChan
-}
-
 // Start :
 func (t *Telegram) Start() {
 	go func() {
-		postChan := <-t.PostChanChan
+		postChan := <-t.postChanChan
 		for {
 			select {
 			case req := <-t.updateChannel:
-				postChan <- NewPost(TELEGRAM, t.Channel, req.Message.Text)
-			case <-t.Done:
+				postChan <- NewPost(TELEGRAM, t.channel, req.Message.Text)
+			case <-t.done:
 				break
 			}
 		}
@@ -70,8 +83,8 @@ func (t *Telegram) Start() {
 // Send :
 func (t Telegram) Send(post *Post) error {
 	if strings.Compare(TELEGRAM, post.Messenger) == 0 {
-		if strings.Compare(t.Channel, post.Channel) == 0 {
-			telegramPost := tgbotapi.NewMessage(t.ChatID, post.Message)
+		if strings.Compare(t.channel, post.Channel) == 0 {
+			telegramPost := tgbotapi.NewMessage(t.chatID, post.Message)
 
 			_, e := t.botAPI.Send(telegramPost)
 			if e != nil {
@@ -85,5 +98,5 @@ func (t Telegram) Send(post *Post) error {
 
 // Shutdown :
 func (t Telegram) Shutdown() {
-	t.Done <- 1
+	t.done <- 1
 }

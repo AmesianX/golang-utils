@@ -13,14 +13,14 @@ const MATTERMOST = "mattermost"
 
 // Mattermost :
 type Mattermost struct {
-	URL      string
-	Username string
-	Password string
-	Team     string
-	Channel  string
+	url      string
+	username string
+	password string
+	team     string
+	channel  string
 
-	PostChanChan chan chan *Post
-	Done         chan int
+	postChanChan chan chan *Post
+	done         chan int
 
 	client          *model.Client4
 	botUser         *model.User
@@ -30,35 +30,70 @@ type Mattermost struct {
 
 // NewMattermost :
 func NewMattermost(url string, username string, password string, team string, channel string) *Mattermost {
-	return &Mattermost{URL: url, Username: username, Password: password, Team: team, Channel: channel, PostChanChan: make(chan chan *Post, 1), Done: make(chan int, 1)}
+	return &Mattermost{url: url, username: username, password: password, team: team, channel: channel, postChanChan: make(chan chan *Post, 1), done: make(chan int, 1)}
+}
+
+// IsValid :
+func (m *Mattermost) IsValid() error {
+	if len(m.url) == 0 {
+		return errors.New("url is nil")
+	}
+
+	_, e := url.Parse(m.url)
+	if e != nil {
+		return e
+	}
+
+	if len(m.username) == 0 {
+		return errors.New("username is nil")
+	}
+
+	if len(m.password) == 0 {
+		return errors.New("password is nil")
+	}
+
+	if len(m.team) == 0 {
+		return errors.New("team is nil")
+	}
+
+	if len(m.channel) == 0 {
+		return errors.New("channel is nil")
+	}
+
+	return nil
+}
+
+// GetPostChanChan :
+func (m *Mattermost) GetPostChanChan() chan chan *Post {
+	return m.postChanChan
 }
 
 // Login :
 func (m *Mattermost) Login() error {
-	m.client = model.NewAPIv4Client(m.URL)
+	m.client = model.NewAPIv4Client(m.url)
 
 	if _, resp := m.client.GetOldClientConfig(""); resp.Error != nil {
 		return errors.New(resp.Error.Message)
 	}
 
-	user, resp := m.client.Login(m.Username, m.Password)
+	user, resp := m.client.Login(m.username, m.password)
 	if resp.Error != nil {
 		return errors.New(resp.Error.Message)
 	}
 	m.botUser = user
 
-	team, resp := m.client.GetTeamByName(m.Team, "")
+	team, resp := m.client.GetTeamByName(m.team, "")
 	if resp.Error != nil {
 		return errors.New(resp.Error.Message)
 	}
 
-	channel, resp := m.client.GetChannelByName(m.Channel, team.Id, "")
+	channel, resp := m.client.GetChannelByName(m.channel, team.Id, "")
 	if resp.Error != nil {
 		return errors.New(resp.Error.Message)
 	}
 	m.botChannel = channel
 
-	u, _ := url.Parse(m.URL)
+	u, _ := url.Parse(m.url)
 
 	webSocketClient, e := model.NewWebSocketClient4("wss://"+u.Hostname(), m.client.AuthToken)
 	if e != nil {
@@ -71,15 +106,10 @@ func (m *Mattermost) Login() error {
 	return nil
 }
 
-// GetPostChanChan :
-func (m *Mattermost) GetPostChanChan() chan chan *Post {
-	return m.PostChanChan
-}
-
 // Start :
 func (m *Mattermost) Start() {
 	go func() {
-		postChan := <-m.PostChanChan
+		postChan := <-m.postChanChan
 		for {
 			select {
 			case eventChannel := <-m.webSocketClient.EventChannel:
@@ -96,8 +126,8 @@ func (m *Mattermost) Start() {
 					}
 				}
 
-				postChan <- NewPost(MATTERMOST, m.Channel, req.Message)
-			case <-m.Done:
+				postChan <- NewPost(MATTERMOST, m.channel, req.Message)
+			case <-m.done:
 				break
 			}
 		}
@@ -107,7 +137,7 @@ func (m *Mattermost) Start() {
 // Send :
 func (m Mattermost) Send(post *Post) error {
 	if strings.Compare(MATTERMOST, post.Messenger) == 0 {
-		if strings.Compare(m.Channel, post.Channel) == 0 {
+		if strings.Compare(m.channel, post.Channel) == 0 {
 			mattermostPost := &model.Post{}
 			mattermostPost.ChannelId = m.botChannel.Id
 			mattermostPost.Message = post.Message
@@ -123,5 +153,5 @@ func (m Mattermost) Send(post *Post) error {
 
 // Shutdown :
 func (m Mattermost) Shutdown() {
-	m.Done <- 1
+	m.done <- 1
 }
