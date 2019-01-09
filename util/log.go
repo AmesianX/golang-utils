@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/natefinch/lumberjack.v2"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 // Field : 필드
@@ -77,7 +77,32 @@ func NewLogger(name string, level string) *Logger {
 }
 
 // Debug 로그 생성
-func (l *Logger) Debug(msg string, fields ...Field) {
+func (l *Logger) Debug(msg string) {
+	l.DebugWithField(msg)
+}
+
+// Info 로그 생성
+func (l *Logger) Info(msg string) {
+	l.InfoWithField(msg)
+}
+
+// Warn 로그 생성
+func (l *Logger) Warn(msg string) {
+	l.WarnWithField(msg)
+}
+
+// Error 로그 생성
+func (l *Logger) Error(msg string) {
+	l.ErrorWithField(msg)
+}
+
+// Panic 로그 생성
+func (l *Logger) Panic(msg string) {
+	l.PanicWithField(msg)
+}
+
+// DebugWithField :
+func (l *Logger) DebugWithField(msg string, fields ...Field) {
 	_, file, line, ok := runtime.Caller(1)
 	if ok {
 		l.zap.Debug(fmt.Sprintf("%s:%d:%s", file, line, msg), fields...)
@@ -86,18 +111,18 @@ func (l *Logger) Debug(msg string, fields ...Field) {
 	}
 }
 
-// Info 로그 생성
-func (l *Logger) Info(msg string, fields ...Field) {
+// InfoWithField :
+func (l *Logger) InfoWithField(msg string, fields ...Field) {
 	l.zap.Info(msg, fields...)
 }
 
-// Warn 로그 생성
-func (l *Logger) Warn(msg string, fields ...Field) {
+// WarnWithField :
+func (l *Logger) WarnWithField(msg string, fields ...Field) {
 	l.zap.Warn(msg, fields...)
 }
 
-// Error 로그 생성
-func (l *Logger) Error(msg string, fields ...Field) {
+// ErrorWithField :
+func (l *Logger) ErrorWithField(msg string, fields ...Field) {
 	_, file, line, ok := runtime.Caller(1)
 	if ok {
 		l.zap.Error(fmt.Sprintf("%s:%d:%s", file, line, msg), fields...)
@@ -106,8 +131,8 @@ func (l *Logger) Error(msg string, fields ...Field) {
 	}
 }
 
-// Panic 로그 생성
-func (l *Logger) Panic(msg string, fields ...Field) {
+// PanicWithField
+func (l *Logger) PanicWithField(msg string, fields ...Field) {
 	_, file, line, ok := runtime.Caller(1)
 	if ok {
 		l.zap.Panic(fmt.Sprintf("%s:%d:%s", file, line, msg), fields...)
