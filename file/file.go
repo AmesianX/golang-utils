@@ -1,11 +1,11 @@
-package util
+package file
 
 import (
 	"io/ioutil"
 	"os"
 )
 
-// IsExistFile : 파일 존재 유무 확인
+// IsExistFile 파일 존재 유무 확인
 func IsExistFile(name string) bool {
 	if _, e := os.Stat(name); os.IsNotExist(e) {
 		return false
@@ -13,7 +13,7 @@ func IsExistFile(name string) bool {
 	return true
 }
 
-// GetFileNameList : 해당 경로의 파일 목록 반환
+// GetFileNameList 해당 경로의 파일 목록 반환
 func GetFileNameList(path string) ([]string, error) {
 	var fileNameList []string
 	files, e := ioutil.ReadDir(path)
